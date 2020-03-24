@@ -1,0 +1,21 @@
+{
+  "name": "hl-cli-image-uploader",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hlmasterchief/cli-image-uploader.git"
+  },
+  "author": "hl",
+  "bugs": {
+    "url": "https://github.com/hlmasterchief/cli-image-uploader/issues"
+  },
+  "homepage": "https://github.com/hlmasterchief/cli-image-uploader#readme",
+  "dependencies": {
+    "yargs": "^15.3.1"
+  }
+}
