@@ -1,5 +1,18 @@
+const dotenv = require('dotenv');
 const yargs = require('yargs');
 const fs = require('fs');
+const imgur = require('imgur');
+const glob = require('glob');
+const cloudinary = require('cloudinary').v2;
+
+// Config
+dotenv.config();
+imgur.setCredentials(process.env.IMGUR_EMAIL, process.env.IMGUR_PASSWORD, process.env.IMGUR_CLIENT_ID);
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 const argv = yargs
   // .scriptName('cli-image-uploader')
@@ -25,7 +38,7 @@ const argv = yargs
         .example('$0 img -o out.txt', 'Upload images in img/ and save links to img/out.txt')
     },
     handler: (argv) => {
-      console.log(`folder: ${argv.folder}; output: ${argv.output}`);
+      console.log(`folder: ${argv.folder} | output: ${argv.output}`);
 
       const dirPath = argv.folder;
       const filePath = `${argv.folder}/${argv.output}`;
@@ -38,10 +51,43 @@ const argv = yargs
         return console.log('File exist');
       }
 
-      fs.writeFile(filePath, 'Hello content!', (err) => {
-        if (err) throw err;
-        console.log('Saved!');
-      });
+      const stream = fs.createWriteStream(filePath);
+      stream.on('error', console.error);
+
+      const imgPath = `${argv.folder}/*.{jfif,jpeg,jpg,png,gif}`;
+      const fileExtIndex = (argv.output.lastIndexOf('.') >= 0) ? argv.output.lastIndexOf('.') : argv.output.length;
+      const fileName = argv.output.substring(0, fileExtIndex);
+
+      imgur.createAlbum()
+        .then(function(json) {
+
+          glob(imgPath, (err, files) => {
+            if (err) return console.error(err.message);
+
+            files.forEach((file) => {
+              let line = '';
+
+              imgur.uploadFile(file, json.data.id)
+                .then(function (json) {
+                    line += `${json.data.link}\t`;
+
+                    cloudinary.uploader.upload(file, { folder: fileName, use_filename: true }, (err, result) => {
+                      if (err) return console.error(err.message);
+
+                      line += `${result.secure_url}\t`;
+                      line += file.substring(file.lastIndexOf('/') + 1);
+                      stream.write(line + '\n');
+                    })
+                })
+                .catch(function (err) {
+                    console.error(err.message);
+                });
+            });
+          });
+        })
+        .catch(function (err) {
+          console.error(err.message);
+        });
     }
   })
   .alias('help', 'h')
