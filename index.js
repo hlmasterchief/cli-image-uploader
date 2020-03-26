@@ -61,13 +61,13 @@ const argv = yargs
       imgur.createAlbum()
         .then(function(json) {
 
-          glob(imgPath, (err, files) => {
+          glob(imgPath, async (err, files) => {
             if (err) return console.error(err.message);
 
-            files.forEach((file) => {
+            for (const file of files) {
               let line = '';
 
-              imgur.uploadFile(file, json.data.id)
+              await imgur.uploadFile(file, json.data.id)
                 .then(function (json) {
                     line += `${json.data.link}\t`;
 
@@ -81,8 +81,12 @@ const argv = yargs
                 })
                 .catch(function (err) {
                     console.error(err.message);
+                    if (err.message.code === 429) {
+                      console.log('Imgur limit at ' + file);
+                      process.exit();
+                    }
                 });
-            });
+            }
           });
         })
         .catch(function (err) {
